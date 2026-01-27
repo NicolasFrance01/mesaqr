@@ -1,6 +1,6 @@
 import { Mesa } from "@/types/mesa";
 import { Pedido } from "@/types/pedido";
-import { Notificacion } from "@/types/pedido"; // Ensure type definitions are safe/shared
+import { Notificacion } from "@/types/notificacion";
 
 // Helper to fetch JSON
 const fetcher = async (url: string) => {

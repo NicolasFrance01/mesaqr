@@ -6,6 +6,8 @@ import { Mesa, UsuarioMesa } from '@/types/mesa';
 import { Pedido } from '@/types/pedido';
 import { api } from './api';
 
+import { Notificacion } from "@/types/notificacion";
+
 // Re-use existing interfaces
 export interface TransaccionItem {
     nombre: string;
@@ -23,14 +25,6 @@ export interface Transaccion {
     destinatarioAmigo?: string;
     rating?: number;
     comentario?: string;
-}
-export interface Notificacion {
-    id: string;
-    tipo: 'order' | 'waiter' | 'payment' | 'review' | 'kitchen';
-    mensaje: string;
-    mesaId: string;
-    leido: boolean;
-    timestamp: Date;
 }
 
 interface AppContextType {
