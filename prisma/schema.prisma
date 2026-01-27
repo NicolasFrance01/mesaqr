@@ -1,0 +1,112 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Mesa {
+  id        String   @id
+  nombre    String
+  x         Float
+  y         Float
+  estado    String   // 'libre' | 'ocupada' | 'pagando'
+  capacidad Int
+  sector    String   // 'principal', 'patio', etc.
+  abierta   DateTime?
+  totalMesa Float    @default(0)
+  ownerId   String?  // ID of the user who opened the table
+
+  usuarios  UsuarioMesa[]
+  pedidos   Pedido[]
+  resenas   Resena[]
+  notificaciones Notificacion[]
+  transacciones Transaccion[]
+}
+
+model UsuarioMesa {
+  id          String  @id
+  nombre      String
+  pagado      Boolean @default(false)
+  totalPagado Float   @default(0)
+  mesaId      String
+  mesa        Mesa    @relation(fields: [mesaId], references: [id], onDelete: Cascade)
+
+  // Items consumed are tracked JSON or relation?
+  // Use JSON for simplicity if we don't want strict relation overhead for transient data
+  itemsConsumidos Json[] // Array of { producto: string, cantidad: number, precio: number }
+}
+
+model Producto {
+  id          String   @id
+  nombre      String
+  precio      Float
+  categoria   String
+  descripcion String?
+  imagen      String?
+  stock       Int      @default(0)
+}
+
+model Pedido {
+  id        String   @id
+  mesaId    String
+  mesa      Mesa     @relation(fields: [mesaId], references: [id], onDelete: Cascade)
+  estado    String   // 'pendiente' | 'en_preparacion' | 'listo_para_entregar' | 'entregado' | 'cancelado'
+  total     Float
+  createdAt DateTime @default(now())
+
+  items     PedidoItem[]
+}
+
+model PedidoItem {
+  id        String  @id @default(cuid())
+  pedidoId  String
+  pedido    Pedido  @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  
+  // We store product data snapshot to avoid price changes affecting old orders
+  nombre    String
+  precio    Float
+  cantidad  Float
+  productoId String? // Optional link to live product
+
+  asignadoA String? // ID of UsuarioMesa
+}
+
+model Resena {
+  id         String   @id @default(cuid())
+  mesaId     String
+  mesa       Mesa     @relation(fields: [mesaId], references: [id], onDelete: Cascade)
+  usuario    String
+  comentario String
+  rating     Int
+  fecha      DateTime @default(now())
+}
+
+model Notificacion {
+  id        String   @id
+  tipo      String   // 'order' | 'waiter' | 'payment' | 'review' | 'kitchen'
+  mensaje   String
+  mesaId    String
+  mesa      Mesa     @relation(fields: [mesaId], references: [id], onDelete: Cascade)
+  leido     Boolean  @default(false)
+  timestamp DateTime @default(now())
+}
+
+model Transaccion {
+  id                String   @id
+  fecha             DateTime @default(now())
+  mesaId            String
+  mesa              Mesa     @relation(fields: [mesaId], references: [id])
+  usuario           String
+  monto             Float
+  items             Json[]   // Snapshot of items paid
+  tipoPago          String   // 'Bar' | 'Amigo'
+  destinatarioAmigo String?
+  rating            Int?
+  comentario        String?
+}
