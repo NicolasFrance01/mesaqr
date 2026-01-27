@@ -24,6 +24,8 @@ export default function MesasPage() {
             id: newId,
             numero: mesas.length + 1,
             nombre: `Mesa ${mesas.length + 1}`,
+            x: 0,
+            y: 0,
             ubicacion: 'Salón',
             estado: 'libre',
             capacidad: 4,
