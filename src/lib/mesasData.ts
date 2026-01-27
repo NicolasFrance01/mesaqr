@@ -10,7 +10,8 @@ export const MESAS_INITIAL: Mesa[] = [
         capacidad: 4,
         usuarios: [],
         totalMesa: 0,
-        abierta: null
+        abierta: null,
+        splitMode: 'equal'
     },
     {
         id: 'm2',
@@ -24,7 +25,8 @@ export const MESAS_INITIAL: Mesa[] = [
             { id: 'u2', nombre: 'Ana', pagado: false, totalPagado: 0, itemsConsumidos: [] }
         ],
         totalMesa: 0,
-        abierta: new Date()
+        abierta: new Date(),
+        splitMode: 'equal'
     },
     {
         id: 'm3',
