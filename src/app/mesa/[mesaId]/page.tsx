@@ -44,9 +44,9 @@ export default function MesaQRPage({ params }: { params: Promise<{ mesaId: strin
     }
   }, [mesaId, mesas]);
 
-  const handleJoin = () => {
+  const handleJoin = async () => {
     if (!nombreInput.trim()) return;
-    const newUser = unirUsuarioAMesa(mesaId, nombreInput);
+    const newUser = await unirUsuarioAMesa(mesaId, nombreInput);
     setUsuario(newUser);
     localStorage.setItem(`mesa_${mesaId}_user`, newUser.id);
   };
