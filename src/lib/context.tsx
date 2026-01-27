@@ -67,7 +67,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     // Transacciones still local for now? or need API? Assuming local for demo or need API
     // For now keeping transacciones in state or minimal
-    const [transacciones, setTransacciones] = useState<Transaccion[]>([]);
+    const [transacciones] = useState<Transaccion[]>([]);
 
     const mesas = mesasData || [];
     const pedidos = pedidosData || [];
@@ -134,7 +134,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         });
     };
 
-    const updatePedidoEstado = async (id: string, estado: any) => {
+    const updatePedidoEstado = async (id: string, estado: 'en_preparacion' | 'listo_para_entregar' | 'entregado' | 'cancelado') => {
         await api.updatePedidoEstado(id, estado);
         mutate('/api/pedidos');
     };
