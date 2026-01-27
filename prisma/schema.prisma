@@ -12,6 +12,7 @@ datasource db {
 
 model Mesa {
   id        String   @id
+  numero    Int
   nombre    String
   x         Float
   y         Float
@@ -20,6 +21,7 @@ model Mesa {
   sector    String   // 'principal', 'patio', etc.
   abierta   DateTime?
   totalMesa Float    @default(0)
+  splitMode String   @default("itemized") // 'equal' | 'itemized'
   ownerId   String?  // ID of the user who opened the table
 
   usuarios  UsuarioMesa[]
