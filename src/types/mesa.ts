@@ -21,6 +21,8 @@ export interface Mesa {
     id: string;
     numero: number;
     nombre: string;
+    x: number;
+    y: number;
     ubicacion: string;
     estado: MesaEstado;
     capacidad: number;
