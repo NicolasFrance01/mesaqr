@@ -37,7 +37,8 @@ export const MESAS_INITIAL: Mesa[] = [
         capacidad: 1,
         usuarios: [],
         totalMesa: 0,
-        abierta: null
+        abierta: null,
+        splitMode: 'equal'
     },
     {
         id: 'm4',
@@ -48,6 +49,7 @@ export const MESAS_INITIAL: Mesa[] = [
         capacidad: 6,
         usuarios: [],
         totalMesa: 0,
-        abierta: null
-    },
+        abierta: null,
+        splitMode: 'equal'
+    }
 ];
