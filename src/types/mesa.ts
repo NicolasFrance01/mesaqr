@@ -6,6 +6,7 @@ export interface UsuarioMesa {
     pagado: boolean;
     totalPagado: number;
     itemsConsumidos: { productoId: string; cantidad: number; precio: number }[];
+    mesaId?: string;
 }
 
 export interface Resena {
