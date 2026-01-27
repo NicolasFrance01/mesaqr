@@ -27,6 +27,7 @@ export default function MesasPage() {
             x: 0,
             y: 0,
             ubicacion: 'Salón',
+            sector: 'Principal',
             estado: 'libre',
             capacidad: 4,
             splitMode: 'itemized',

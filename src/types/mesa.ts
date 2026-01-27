@@ -24,6 +24,7 @@ export interface Mesa {
     x: number;
     y: number;
     ubicacion: string;
+    sector: string;
     estado: MesaEstado;
     capacidad: number;
     usuarios: UsuarioMesa[];
