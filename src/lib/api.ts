@@ -47,5 +47,8 @@ export const api = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
+    }),
+    clearNotificaciones: (mesaId: string) => fetch(`/api/notificaciones?mesaId=${mesaId}`, {
+        method: 'DELETE'
     })
 };

@@ -16,7 +16,6 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        // Support bulk create or single? Usually single
         const notificacion = await prisma.notificacion.create({
             data: {
                 id: body.id,
@@ -30,5 +29,23 @@ export async function POST(request: Request) {
         return NextResponse.json(notificacion);
     } catch (error) {
         return NextResponse.json({ error: 'Error creating notification' }, { status: 500 });
+    }
+}
+
+export async function DELETE(request: Request) {
+    const { searchParams } = new URL(request.url);
+    const mesaId = searchParams.get('mesaId');
+
+    if (!mesaId) {
+        return NextResponse.json({ error: 'Mesa ID required' }, { status: 400 });
+    }
+
+    try {
+        await prisma.notificacion.deleteMany({
+            where: { mesaId }
+        });
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        return NextResponse.json({ error: 'Error clearing notifications' }, { status: 500 });
     }
 }
