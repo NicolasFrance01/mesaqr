@@ -19,6 +19,7 @@ model Mesa {
   estado    String   // 'libre' | 'ocupada' | 'pagando'
   capacidad Int
   sector    String   // 'principal', 'patio', etc.
+  ubicacion String   @default("Salón")
   abierta   DateTime?
   totalMesa Float    @default(0)
   splitMode String   @default("itemized") // 'equal' | 'itemized'
