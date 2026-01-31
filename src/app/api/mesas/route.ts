@@ -26,10 +26,18 @@ export async function POST(request: Request) {
         const body = await request.json();
         const { id, ...data } = body;
 
+        // Strip relations that cause validation errors in plain upsert
+        const sanitizedData = { ...data };
+        delete (sanitizedData as any).usuarios;
+        delete (sanitizedData as any).resenas;
+        delete (sanitizedData as any).pedidos;
+        delete (sanitizedData as any).notificaciones;
+        delete (sanitizedData as any).transacciones;
+
         const mesa = await prisma.mesa.upsert({
             where: { id },
-            update: data,
-            create: { id, ...data }
+            update: sanitizedData,
+            create: { id, ...sanitizedData }
         });
         return NextResponse.json(mesa);
     } catch (error) {
