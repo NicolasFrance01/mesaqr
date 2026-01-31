@@ -6,6 +6,19 @@ import { formatCurrency } from '@/lib/utils';
 import { Calendar, Printer, Search, Star, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+function TimeDisplay({ date }: { date: any }) {
+    const [mounted, setMounted] = React.useState(false);
+    React.useEffect(() => setMounted(true), []);
+    if (!mounted) return <span className="text-xs text-slate-500">--:--</span>;
+
+    try {
+        const time = new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return <span className="text-xs text-slate-500">{time}</span>;
+    } catch (e) {
+        return <span className="text-xs text-slate-500">--:--</span>;
+    }
+}
+
 export default function HistorialPage() {
     const { transacciones } = useApp();
 
@@ -207,7 +220,7 @@ export default function HistorialPage() {
                                     <td className="px-6 py-4 align-top">
                                         <div className="flex flex-col">
                                             <span className="font-bold text-slate-900 dark:text-white">{new Date(t.fecha).toLocaleDateString()}</span>
-                                            <span className="text-xs text-slate-500">{new Date(t.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                            <TimeDisplay date={t.fecha} />
                                             <span className="text-[10px] text-slate-400 font-mono mt-1">#{t.id.substr(0, 6)}</span>
                                         </div>
                                     </td>

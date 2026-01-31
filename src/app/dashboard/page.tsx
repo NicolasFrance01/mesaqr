@@ -6,6 +6,19 @@ import Link from 'next/link';
 import { Users, DollarSign, ChefHat, TrendingUp, AlertCircle, Package } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 
+function TimeDisplay({ date }: { date: any }) {
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
+  if (!mounted) return <span className="text-xs text-slate-400">--:--</span>;
+
+  try {
+    const time = new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return <span className="text-xs text-slate-400">{time}</span>;
+  } catch (e) {
+    return <span className="text-xs text-slate-400">--:--</span>;
+  }
+}
+
 export default function DashboardOverview() {
   const { mesas, pedidos } = useApp();
 
@@ -57,7 +70,7 @@ export default function DashboardOverview() {
                   <p className="text-sm font-medium text-slate-900 dark:text-white">Pedido #{pedido.id.slice(-4)}</p>
                   <p className="text-xs text-slate-500">Mesa {pedido.mesaId.replace('m', '')} - {formatCurrency(pedido.total)}</p>
                 </div>
-                <span className="text-xs text-slate-400">{new Date(pedido.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                <TimeDisplay date={pedido.createdAt} />
               </div>
             ))}
           </div>

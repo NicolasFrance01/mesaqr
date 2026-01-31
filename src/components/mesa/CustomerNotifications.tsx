@@ -19,7 +19,7 @@ export function CustomerNotifications({ mesaId }: { mesaId: string }) {
     // Filter for this table and sort by newest
     const misNotificaciones = notificaciones
         .filter(n => n.mesaId === mesaId)
-        .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
     const unreadCount = misNotificaciones.filter(n => !n.leido).length;
 

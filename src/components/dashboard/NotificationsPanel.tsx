@@ -51,7 +51,7 @@ export function NotificationsPanel() {
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-slate-900 dark:text-white">{notif.mensaje}</p>
-                                    <p className="text-[10px] text-slate-400">{notif.timestamp.toLocaleTimeString()}</p>
+                                    <p className="text-[10px] text-slate-400">{new Date(notif.timestamp).toLocaleTimeString()}</p>
                                 </div>
                             </div>
                             <button onClick={() => markNotificationRead(notif.id)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
