@@ -50,5 +50,12 @@ export const api = {
     }),
     clearNotificaciones: (mesaId: string) => fetch(`/api/notificaciones?mesaId=${mesaId}`, {
         method: 'DELETE'
+    }),
+
+    // Transacciones
+    createTransaccion: (data: any) => fetch('/api/transacciones', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
     })
 };

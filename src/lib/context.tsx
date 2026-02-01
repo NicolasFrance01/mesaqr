@@ -63,11 +63,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const { data: pedidosData } = useSWR<Pedido[]>('/api/pedidos', fetcher, { refreshInterval: 2000 });
     const { data: notificacionesData } = useSWR<Notificacion[]>('/api/notificaciones', fetcher, { refreshInterval: 3000 });
 
-    const [transacciones] = useState<Transaccion[]>([]);
+    const { data: transaccionesData } = useSWR<Transaccion[]>('/api/transacciones', fetcher, { refreshInterval: 5000 });
 
     const mesas = mesasData || [];
     const pedidos = pedidosData || [];
     const notificaciones = notificacionesData || [];
+    const transacciones = transaccionesData || [];
 
     // --- Actions ---
 
@@ -227,6 +228,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             // Append review
             await upsertMesa({ ...mesa, resenas: [...(mesa.resenas || []), resena] });
 
+            // Create Transaction for History
+            await api.createTransaccion({
+                id: Math.random().toString(36).substr(2, 9),
+                mesaId,
+                usuario: 'Anónimo', // Or link to user if known context available
+                monto: 0,
+                rating,
+                comentario,
+                tipoPago: 'Bar', // Dummy
+                items: [],
+                fecha: new Date()
+            });
+            mutate('/api/transacciones'); // Refresh history
+
             await api.createNotificacion({
                 id: Math.random().toString(),
                 tipo: 'review',
@@ -244,13 +259,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
 
     const usuarioSeVa = async (mesaId: string, usuarioId: string, metodoPago: 'Bar' | 'Amigo', amigoId?: string) => {
-        // Complex logic: Calculate total, create transaction (local?), update user paid status
-        // Since Transactions are local in this context example (const [transacciones]), we keep them local or mock them
-        // But for Mesa update we use API.
-
         const mesa = mesas.find(m => m.id === mesaId);
         const usuario = mesa?.usuarios.find(u => u.id === usuarioId);
         if (!mesa || !usuario) return;
+
+        // Create Transaction
+        await api.createTransaccion({
+            id: Math.random().toString(36).substr(2, 9),
+            mesaId,
+            usuario: usuario.nombre,
+            monto: getUsuarioTotal(mesaId, usuarioId),
+            items: usuario.itemsConsumidos || [],
+            tipoPago: metodoPago,
+            destinatarioAmigo: amigoId
+        });
+        mutate('/api/transacciones');
 
         const total = getUsuarioTotal(mesaId, usuarioId);
 
@@ -295,6 +318,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const pagarMesaCompleta = async (mesaId: string, usuarioId: string, metodoPago: 'Bar' | 'Amigo') => {
         const mesa = mesas.find(m => m.id === mesaId);
         if (!mesa) return;
+
+        // Create Transaction
+        await api.createTransaccion({
+            id: Math.random().toString(36).substr(2, 9),
+            mesaId,
+            usuario: `${mesa.nombre} (Total)`,
+            monto: mesa.totalMesa,
+            items: [], // We could Aggregate items if needed
+            tipoPago: metodoPago
+        });
+        mutate('/api/transacciones');
 
         // Clear Notifications (Refinement Phase 4)
         await api.clearNotificaciones(mesaId);

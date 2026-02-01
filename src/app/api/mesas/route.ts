@@ -43,20 +43,46 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { id, ...data } = body;
+        const { id, usuarios, ...data } = body;
 
         // Strip relations that cause validation errors in plain upsert
         const sanitizedData = { ...data };
-        delete (sanitizedData as any).usuarios;
         delete (sanitizedData as any).resenas;
         delete (sanitizedData as any).pedidos;
         delete (sanitizedData as any).notificaciones;
         delete (sanitizedData as any).transacciones;
 
+        // Format usuarios for nested write if present
+        const usuariosWrite = usuarios ? {
+            deleteMany: {},
+            create: usuarios.map((u: any) => ({
+                id: u.id,
+                nombre: u.nombre,
+                pagado: u.pagado,
+                totalPagado: u.totalPagado,
+                itemsConsumidos: u.itemsConsumidos || []
+            }))
+        } : undefined;
+
         const mesa = await prisma.mesa.upsert({
             where: { id },
-            update: sanitizedData,
-            create: { id, ...sanitizedData }
+            update: {
+                ...sanitizedData,
+                usuarios: usuariosWrite
+            },
+            create: {
+                id,
+                ...sanitizedData,
+                usuarios: usuarios ? {
+                    create: usuarios.map((u: any) => ({
+                        id: u.id,
+                        nombre: u.nombre,
+                        pagado: u.pagado,
+                        totalPagado: u.totalPagado,
+                        itemsConsumidos: u.itemsConsumidos || []
+                    }))
+                } : undefined
+            }
         });
         return NextResponse.json(mesa);
     } catch (error) {
