@@ -14,7 +14,26 @@ export async function GET() {
             },
             orderBy: { nombre: 'asc' }
         });
-        return NextResponse.json(mesas);
+
+        // Map nested pedidos items for frontend compatibility
+        const mappedMesas = mesas.map(mesa => ({
+            ...mesa,
+            pedidos: mesa.pedidos.map(pedido => ({
+                ...pedido,
+                items: pedido.items.map(item => ({
+                    id: item.id,
+                    cantidad: item.cantidad,
+                    asignadoA: item.asignadoA,
+                    producto: {
+                        id: item.productoId,
+                        nombre: item.nombre,
+                        precio: item.precio
+                    }
+                }))
+            }))
+        }));
+
+        return NextResponse.json(mappedMesas);
     } catch (error) {
         console.error('Error fetching mesas:', error);
         return NextResponse.json({ error: 'Error fetching mesas' }, { status: 500 });
