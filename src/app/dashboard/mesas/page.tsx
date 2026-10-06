@@ -7,11 +7,14 @@ import { Plus, Search } from 'lucide-react';
 import { Mesa } from '@/types/mesa';
 
 import { EditMesaModal } from '@/components/dashboard/EditMesaModal';
+import { MesaMap } from '@/components/dashboard/MesaMap';
+import { LayoutGrid, Map as MapIcon } from 'lucide-react';
 
 export default function MesasPage() {
     const { mesas, upsertMesa } = useApp();
     const [searchTerm, setSearchTerm] = useState('');
     const [editingMesa, setEditingMesa] = useState<Mesa | null>(null);
+    const [viewMode, setViewMode] = useState<'grid' | 'map'>('map');
 
     const filteredMesas = mesas.filter(m =>
         m.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -55,8 +58,8 @@ export default function MesasPage() {
                 </button>
             </div>
 
-            <div className="flex items-center gap-4 rounded-xl bg-white p-4 shadow-sm dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
-                <div className="relative flex-1">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-xl bg-white p-4 shadow-sm dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                <div className="relative flex-1 max-w-md">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                     <input
                         type="text"
@@ -73,13 +76,33 @@ export default function MesasPage() {
                         </button>
                     ))}
                 </div>
+                <div className="flex items-center gap-1 rounded-lg bg-slate-100 p-1 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 ml-auto">
+                    <button
+                        onClick={() => setViewMode('grid')}
+                        className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${viewMode === 'grid' ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-800 dark:text-white' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                    >
+                        <LayoutGrid className="h-4 w-4" />
+                        Grilla
+                    </button>
+                    <button
+                        onClick={() => setViewMode('map')}
+                        className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${viewMode === 'map' ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-800 dark:text-white' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                    >
+                        <MapIcon className="h-4 w-4" />
+                        Mapa
+                    </button>
+                </div>
             </div>
 
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                {filteredMesas.map((mesa) => (
-                    <MesaCard key={mesa.id} mesa={mesa} onEdit={(m) => setEditingMesa(m)} />
-                ))}
-            </div>
+            {viewMode === 'grid' ? (
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                    {filteredMesas.map((mesa) => (
+                        <MesaCard key={mesa.id} mesa={mesa} onEdit={(m) => setEditingMesa(m)} />
+                    ))}
+                </div>
+            ) : (
+                <MesaMap mesas={filteredMesas} onEdit={(m) => setEditingMesa(m)} />
+            )}
 
             {editingMesa && (
                 <EditMesaModal

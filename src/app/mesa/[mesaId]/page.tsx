@@ -11,6 +11,7 @@ import { Producto } from '@/types/producto';
 import { Pedido, ItemPedido } from '@/types/pedido';
 import { UsuarioMesa } from '@/types/mesa';
 import { CustomerNotifications } from '@/components/mesa/CustomerNotifications';
+import { toast } from 'sonner';
 
 export default function MesaQRPage({ params }: { params: Promise<{ mesaId: string }> }) {
   const { mesaId } = use(params);
@@ -24,6 +25,7 @@ export default function MesaQRPage({ params }: { params: Promise<{ mesaId: strin
   const [carrito, setCarrito] = useState<ItemPedido[]>([]);
   const [view, setView] = useState<'menu' | 'cuenta' | 'review'>('menu');
   const [enviado, setEnviado] = useState(false);
+  const [activeCategory, setActiveCategory] = useState('Entradas');
 
   // Payment Mode State
   const [isFullPayment, setIsFullPayment] = useState(false);
@@ -70,6 +72,14 @@ export default function MesaQRPage({ params }: { params: Promise<{ mesaId: strin
       }
       return [...prev, { id: Math.random().toString(36), producto, cantidad: 1, asignadoA: usuario?.id }];
     });
+
+    toast.success(`Agregado: ${producto.nombre}`, {
+      duration: 1500,
+      position: 'bottom-center'
+    });
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(50); // Light tap
+    }
   };
 
   const [isProcessing, setIsProcessing] = useState(false);
@@ -107,6 +117,11 @@ export default function MesaQRPage({ params }: { params: Promise<{ mesaId: strin
       setEnviado(false);
     }, 300); // Quick clear but keep Envido logic
 
+    toast.success('¡Pedido enviado a cocina!');
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate([100, 50, 100]); // Haptic feedback
+    }
+
     setTimeout(() => setEnviado(false), 3000);
   };
 
@@ -123,6 +138,11 @@ export default function MesaQRPage({ params }: { params: Promise<{ mesaId: strin
       pagarMesaCompleta(mesaId, usuario.id, metodo);
     } else {
       usuarioSeVa(mesaId, usuario.id, metodo, amigoId);
+    }
+
+    toast.success('Pago procesado correctamente');
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(100);
     }
 
     // Trigger Review
@@ -187,7 +207,7 @@ export default function MesaQRPage({ params }: { params: Promise<{ mesaId: strin
   return (
     <div className="min-h-screen bg-slate-50 pb-32 dark:bg-slate-950">
       {/* Header */}
-      <header className="sticky top-0 z-10 flex items-center justify-between bg-white/80 px-4 py-3 backdrop-blur-md dark:bg-slate-900/80 shadow-sm">
+      <header className="sticky top-0 z-30 flex items-center justify-between bg-white/90 px-4 py-3 backdrop-blur-xl dark:bg-slate-900/90 shadow-sm border-b border-slate-100 dark:border-slate-800">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-950">
             <ShoppingBag className="h-5 w-5 text-orange-600" />
@@ -300,12 +320,38 @@ export default function MesaQRPage({ params }: { params: Promise<{ mesaId: strin
             </div>
           )}
 
+          {/* Category Swipe Bar */}
+          <div className="sticky top-[60px] z-20 -mx-6 px-6 py-3 bg-slate-50/90 dark:bg-slate-950/90 backdrop-blur-md">
+            <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide">
+              {['Entradas', 'Platos Principales', 'Bebidas', 'Postres'].map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => {
+                    setActiveCategory(cat);
+                    document.getElementById(`cat-${cat}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                  className={cn(
+                    "snap-start whitespace-nowrap px-4 py-2 rounded-full text-sm font-bold transition-all shadow-sm",
+                    activeCategory === cat
+                      ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900"
+                      : "bg-white text-slate-600 border border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800"
+                  )}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Menu Categories */}
-          <main className="px-6 py-6 space-y-8">
+          <main className="px-6 py-4 space-y-12">
             {['Entradas', 'Platos Principales', 'Bebidas', 'Postres'].map((cat) => (
-              <section key={cat}>
-                <h3 className="mb-4 text-lg font-bold text-slate-900 dark:text-white">{cat}</h3>
-                <div className="grid gap-3">
+              <section key={cat} id={`cat-${cat}`} className="scroll-mt-28">
+                <h3 className="mb-6 text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+                  {cat}
+                  <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800 ml-2" />
+                </h3>
+                <div className="grid gap-4">
                   {MENU_DATA.filter(p => p.categoria === cat).map((producto) => (
                     <MenuCard key={producto.id} producto={producto} onAdd={handleAdd} />
                   ))}
@@ -316,23 +362,27 @@ export default function MesaQRPage({ params }: { params: Promise<{ mesaId: strin
 
           {/* Cart Float */}
           {carrito.length > 0 && (
-            <div className="fixed bottom-6 left-6 right-6 z-20 overflow-hidden rounded-2xl bg-slate-900 p-4 shadow-2xl dark:bg-white text-white dark:text-slate-900">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs opacity-70">{carrito.length} productos seleccionados</p>
-                  <p className="text-xl font-bold">{formatCurrency(totalCarrito)}</p>
+            <div className="fixed bottom-6 left-4 right-4 z-40">
+              <div className="overflow-hidden rounded-3xl bg-slate-900 p-1.5 pl-5 shadow-2xl dark:bg-white text-white dark:text-slate-900 border border-slate-800 dark:border-slate-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col py-2">
+                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-0.5">{carrito.length} ÍTEMS</p>
+                    <p className="text-xl font-black leading-none">{formatCurrency(totalCarrito)}</p>
+                  </div>
+                  {enviado ? (
+                    <div className="flex h-12 items-center gap-2 rounded-2xl bg-green-500/20 px-6 text-green-400 font-bold mr-1">
+                      <CheckCircle2 className="h-5 w-5" /> Enviado
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleSendPedido}
+                      className="flex h-12 items-center gap-2 rounded-2xl bg-orange-500 px-6 font-bold text-white transition-all active:scale-95 hover:bg-orange-600 shadow-lg shadow-orange-500/30"
+                    >
+                      Pedir
+                      <Send className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
-                {enviado ? (
-                  <span className="flex items-center gap-2 text-green-400 font-bold"><CheckCircle2 className="h-5 w-5" /> Enviado</span>
-                ) : (
-                  <button
-                    onClick={handleSendPedido}
-                    className="flex items-center gap-2 rounded-xl bg-orange-500 px-6 py-3 font-bold text-white transition-all active:scale-95"
-                  >
-                    Pedir
-                    <Send className="h-4 w-4" />
-                  </button>
-                )}
               </div>
             </div>
           )}
