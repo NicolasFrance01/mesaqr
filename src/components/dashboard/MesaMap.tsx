@@ -39,6 +39,9 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
     const [isEditMode, setIsEditMode] = useState(false);
     const [searchShape, setSearchShape] = useState('');
 
+    // Local mesas state to prevent drag-jump desyncs before context updates
+    const [localMesas, setLocalMesas] = useState<Mesa[]>(mesas);
+
     // Selection State
     const [selectedMesas, setSelectedMesas] = useState<string[]>([]);
     const [selectedDecorations, setSelectedDecorations] = useState<string[]>([]);
@@ -52,6 +55,13 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
     useEffect(() => {
         setIsClient(true);
     }, []);
+
+    useEffect(() => {
+        // Sync local mesas with props, except when we are actively grouped-dragging to avoid overrides
+        if (!draggingId) {
+            setLocalMesas(mesas);
+        }
+    }, [mesas, draggingId]);
 
     useEffect(() => {
         if (!isClient) return;
@@ -133,7 +143,7 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
             const maxY = Math.max(startY, endY);
             
             if (maxX - minX > 5 || maxY - minY > 5) {
-                const newSelMesas = mesas.filter(m => {
+                const newSelMesas = localMesas.filter(m => {
                     const cx = (m.x || 0) + 48; // ~ center of 96px width
                     const cy = (m.y || 0) + 48;
                     return cx >= minX && cx <= maxX && cy >= minY && cy <= maxY;
@@ -171,12 +181,17 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
 
     const applyGroupDragOffset = (offset: { x: number, y: number }) => {
         if (selectedMesas.length > 0) {
-            selectedMesas.forEach(mId => {
-                const mesa = mesas.find(m => m.id === mId);
-                if (mesa) {
-                    upsertMesa({ ...mesa, x: Math.max(0, Math.round((mesa.x || 0) + offset.x)), y: Math.max(0, Math.round((mesa.y || 0) + offset.y)) });
+            setLocalMesas(prev => prev.map(m => {
+                if (selectedMesas.includes(m.id)) {
+                    const newX = Math.max(0, Math.round((m.x || 0) + offset.x));
+                    const newY = Math.max(0, Math.round((m.y || 0) + offset.y));
+                    const updated = { ...m, x: newX, y: newY };
+                    // We also trigger the context update
+                    upsertMesa(updated);
+                    return updated;
                 }
-            });
+                return m;
+            }));
         }
         if (selectedDecorations.length > 0) {
             const updated = decorations.map(d => {
@@ -190,33 +205,37 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
     };
 
     const handleDragEndMesa = (mesa: Mesa, info: any) => {
-        setDraggingId(null);
-        setGroupDragOffset({ x: 0, y: 0 });
-        
+        // Important: we update the state first before clearing dragging offset to avoid jump back
         if (selectedMesas.includes(mesa.id)) {
             applyGroupDragOffset(info.offset);
         } else {
-            const newX = Math.round(mesa.x + info.offset.x);
-            const newY = Math.round(mesa.y + info.offset.y);
-            upsertMesa({ ...mesa, x: Math.max(0, newX), y: Math.max(0, newY) });
+            const newX = Math.max(0, Math.round((mesa.x || 0) + info.offset.x));
+            const newY = Math.max(0, Math.round((mesa.y || 0) + info.offset.y));
+            const updated = { ...mesa, x: newX, y: newY };
+            setLocalMesas(prev => prev.map(m => m.id === mesa.id ? updated : m));
+            upsertMesa(updated);
         }
+        
+        setDraggingId(null);
+        setGroupDragOffset({ x: 0, y: 0 });
     };
 
     const handleDragEndDecoration = (id: string, info: any) => {
-        setDraggingId(null);
-        setGroupDragOffset({ x: 0, y: 0 });
-        
         if (selectedDecorations.includes(id)) {
             applyGroupDragOffset(info.offset);
         } else {
             const dec = decorations.find(d => d.id === id);
-            if (!dec) return;
-            const newX = Math.round(dec.x + info.offset.x);
-            const newY = Math.round(dec.y + info.offset.y);
-            
-            const updated = decorations.map(d => d.id === id ? { ...d, x: Math.max(0, newX), y: Math.max(0, newY) } : d);
-            saveDecorations(updated);
+            if (dec) {
+                const newX = Math.max(0, Math.round(dec.x + info.offset.x));
+                const newY = Math.max(0, Math.round(dec.y + info.offset.y));
+                
+                const updated = decorations.map(d => d.id === id ? { ...d, x: newX, y: newY } : d);
+                saveDecorations(updated);
+            }
         }
+
+        setDraggingId(null);
+        setGroupDragOffset({ x: 0, y: 0 });
     };
 
     const handleResizePointerDown = (e: React.PointerEvent, decId: string) => {
@@ -292,7 +311,7 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
 
         const props = isPreview ? {} : {
             drag: true,
-            dragConstraints: containerRef,
+            // Removed dragConstraints so they can be dragged freely without getting stuck
             dragElastic: 0,
             dragMomentum: false,
             onDragStart: () => handleDragStart(dec.id, false),
@@ -304,7 +323,7 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
         };
 
         const className = cn(
-            "absolute flex items-center justify-center overflow-hidden",
+            "absolute flex items-center justify-center",
             !isPreview && "cursor-grab active:cursor-grabbing shadow-sm hover:shadow-md transition-shadow",
             dec.type === 'wall-h' && "bg-slate-400 dark:bg-neutral-600 rounded-sm",
             dec.type === 'wall-v' && "bg-slate-400 dark:bg-neutral-600 rounded-sm",
@@ -427,7 +446,7 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
                 {decorations.map(dec => renderDecoration(dec))}
 
                 {/* Render Mesas */}
-                {mesas.map((mesa) => {
+                {localMesas.map((mesa) => {
                     const pedidosPendientes = pedidos.filter(p => p.mesaId === mesa.id && p.estado === 'pendiente').length;
                     const hasPending = pedidosPendientes > 0;
                     
@@ -456,7 +475,7 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
                         <motion.div
                             key={mesa.id}
                             drag
-                            dragConstraints={containerRef}
+                            // Removed dragConstraints so tables can be dragged to the right edge freely
                             dragElastic={0}
                             dragMomentum={false}
                             onDragStart={() => handleDragStart(mesa.id, true)}
