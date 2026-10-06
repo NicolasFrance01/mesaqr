@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { Mesa } from '@/types/mesa';
 import { useApp } from '@/lib/context';
 import { cn } from '@/lib/utils';
-import { AlertCircle, Plus, Trash2 } from 'lucide-react';
+import { AlertCircle, Plus, Trash2, Search } from 'lucide-react';
 
 interface MesaMapProps {
     mesas: Mesa[];
@@ -18,20 +18,29 @@ interface Decoration {
     type: 'wall-h' | 'wall-v' | 'plant' | 'bar';
     x: number;
     y: number;
+    width: number;
+    height: number;
 }
+
+const DECORATION_TEMPLATES = [
+    { type: 'wall-h', name: 'Muro Horizontal', defaultWidth: 128, defaultHeight: 16 },
+    { type: 'wall-v', name: 'Muro Vertical', defaultWidth: 16, defaultHeight: 128 },
+    { type: 'bar', name: 'Barra / Mostrador', defaultWidth: 192, defaultHeight: 64 },
+    { type: 'plant', name: 'Planta / Maceta', defaultWidth: 48, defaultHeight: 48 },
+] as const;
 
 export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
     const { upsertMesa, pedidos } = useApp();
     const containerRef = useRef<HTMLDivElement>(null);
     const [isClient, setIsClient] = useState(false);
     const [decorations, setDecorations] = useState<Decoration[]>([]);
-    const [isEditMode, setIsEditMode] = useState(false); // To show trash icons for decorations
+    const [isEditMode, setIsEditMode] = useState(false);
+    const [searchShape, setSearchShape] = useState('');
 
     useEffect(() => {
         setIsClient(true);
     }, []);
 
-    // Load decorations when location changes
     useEffect(() => {
         if (!isClient) return;
         const saved = localStorage.getItem(`mesa_decor_${location}`);
@@ -67,12 +76,31 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
         saveDecorations(updated);
     };
 
+    const handleResizeDecoration = (id: string, dx: number, dy: number) => {
+        const dec = decorations.find(d => d.id === id);
+        if (!dec) return;
+        
+        // Prevent getting too small
+        const minW = 16;
+        const minH = 16;
+        const newW = Math.max(minW, dec.width + dx);
+        const newH = Math.max(minH, dec.height + dy);
+
+        const updated = decorations.map(d => d.id === id ? { ...d, width: newW, height: newH } : d);
+        saveDecorations(updated); // Note: might cause frequent re-renders during drag, better to use local state during drag and save on end in a full implementation, but works fine for simple admin tools.
+    };
+
     const addDecoration = (type: Decoration['type']) => {
+        const template = DECORATION_TEMPLATES.find(t => t.type === type);
+        if (!template) return;
+
         const newDec: Decoration = {
             id: Math.random().toString(36).substr(2, 9),
             type,
             x: 50,
-            y: 50
+            y: 50,
+            width: template.defaultWidth,
+            height: template.defaultHeight
         };
         saveDecorations([...decorations, newDec]);
     };
@@ -97,10 +125,10 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
         const className = cn(
             "absolute flex items-center justify-center",
             !isPreview && "cursor-grab active:cursor-grabbing shadow-sm hover:shadow-md transition-shadow",
-            dec.type === 'wall-h' && "h-4 w-32 bg-slate-400 dark:bg-neutral-600 rounded-sm",
-            dec.type === 'wall-v' && "w-4 h-32 bg-slate-400 dark:bg-neutral-600 rounded-sm",
-            dec.type === 'plant' && "w-12 h-12 bg-emerald-500/80 rounded-full border-4 border-emerald-600/50 dark:border-emerald-800",
-            dec.type === 'bar' && "h-16 w-48 bg-amber-700/80 rounded-md border-4 border-amber-900/50 dark:border-amber-950"
+            dec.type === 'wall-h' && "bg-slate-400 dark:bg-neutral-600 rounded-sm",
+            dec.type === 'wall-v' && "bg-slate-400 dark:bg-neutral-600 rounded-sm",
+            dec.type === 'plant' && "bg-emerald-500/80 rounded-full border-4 border-emerald-600/50 dark:border-emerald-800",
+            dec.type === 'bar' && "bg-amber-700/80 rounded-md border-4 border-amber-900/50 dark:border-amber-950"
         );
 
         const content = (
@@ -108,15 +136,29 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
                 key={dec.id}
                 {...props}
                 className={className}
-                style={isPreview ? { position: 'relative', x: 0, y: 0 } : undefined}
+                style={isPreview ? { position: 'relative', x: 0, y: 0, width: dec.width, height: dec.height } : { width: dec.width, height: dec.height }}
             >
                 {!isPreview && isEditMode && (
-                    <button 
-                        onClick={(e) => { e.stopPropagation(); removeDecoration(dec.id); }}
-                        className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 z-50"
-                    >
-                        <Trash2 className="w-3 h-3" />
-                    </button>
+                    <>
+                        <button 
+                            onPointerDownCapture={(e) => e.stopPropagation()}
+                            onClick={(e) => { e.stopPropagation(); removeDecoration(dec.id); }}
+                            className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 z-50"
+                        >
+                            <Trash2 className="w-3 h-3" />
+                        </button>
+                        
+                        {/* Resize Handle */}
+                        <motion.div
+                            drag
+                            dragConstraints={{ top: 0, left: 0, bottom: 0, right: 0 }}
+                            dragElastic={0}
+                            dragMomentum={false}
+                            onPointerDownCapture={(e) => e.stopPropagation()} // Prevent parent dragging
+                            onDrag={(e, info) => handleResizeDecoration(dec.id, info.delta.x, info.delta.y)}
+                            className="absolute -bottom-2 -right-2 w-4 h-4 bg-orange-500 rounded-full cursor-se-resize shadow-sm z-50 hover:scale-125 transition-transform"
+                        />
+                    </>
                 )}
             </motion.div>
         );
@@ -124,51 +166,51 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
         return content;
     };
 
+    const filteredTemplates = DECORATION_TEMPLATES.filter(t => t.name.toLowerCase().includes(searchShape.toLowerCase()));
+
     return (
         <div className="flex gap-4">
             {/* Palette */}
-            <div className="w-48 flex-shrink-0 space-y-4 rounded-2xl bg-white p-4 shadow-sm border border-slate-200 dark:bg-neutral-950 dark:border-neutral-800 h-[600px] overflow-y-auto">
-                <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-bold text-sm text-slate-800 dark:text-neutral-200">Estructuras</h3>
-                    <button 
-                        onClick={() => setIsEditMode(!isEditMode)}
-                        className={cn("text-xs px-2 py-1 rounded-md transition-colors", isEditMode ? "bg-red-100 text-red-600 dark:bg-red-900/30" : "bg-slate-100 text-slate-600 dark:bg-neutral-800 dark:text-neutral-400")}
-                    >
-                        {isEditMode ? 'Listo' : 'Editar'}
-                    </button>
+            <div className="w-56 flex-shrink-0 flex flex-col rounded-2xl bg-white shadow-sm border border-slate-200 dark:bg-neutral-950 dark:border-neutral-800 h-[600px] overflow-hidden">
+                <div className="p-4 border-b border-slate-100 dark:border-neutral-800">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-bold text-sm text-slate-800 dark:text-neutral-200">Estructuras</h3>
+                        <button 
+                            onClick={() => setIsEditMode(!isEditMode)}
+                            className={cn("text-xs px-2 py-1 rounded-md transition-colors", isEditMode ? "bg-red-100 text-red-600 dark:bg-red-900/30" : "bg-slate-100 text-slate-600 dark:bg-neutral-800 dark:text-neutral-400")}
+                        >
+                            {isEditMode ? 'Listo' : 'Editar'}
+                        </button>
+                    </div>
+                    <div className="relative">
+                        <Search className="absolute left-2.5 top-2 h-4 w-4 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Buscar forma..."
+                            value={searchShape}
+                            onChange={(e) => setSearchShape(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-1.5 text-xs outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 dark:bg-neutral-900 dark:border-neutral-800 dark:text-white"
+                        />
+                    </div>
+                    <p className="text-[10px] text-slate-500 dark:text-neutral-500 mt-2">Haz clic para agregar al mapa</p>
                 </div>
-                <p className="text-xs text-slate-500 dark:text-neutral-400 mb-4">Haz clic para agregar al mapa</p>
                 
-                <div className="space-y-6">
-                    <div className="flex flex-col items-center gap-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-neutral-900 p-2 rounded-xl transition-colors" onClick={() => addDecoration('wall-h')}>
-                        <div className="h-20 flex items-center justify-center w-full">
-                            {renderDecoration({ id: 'preview', type: 'wall-h', x: 0, y: 0 }, true)}
-                        </div>
-                        <span className="text-xs font-medium text-slate-600 dark:text-neutral-300">Muro Horizontal</span>
-                    </div>
-
-                    <div className="flex flex-col items-center gap-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-neutral-900 p-2 rounded-xl transition-colors" onClick={() => addDecoration('wall-v')}>
-                        <div className="h-32 flex items-center justify-center w-full">
-                            {renderDecoration({ id: 'preview', type: 'wall-v', x: 0, y: 0 }, true)}
-                        </div>
-                        <span className="text-xs font-medium text-slate-600 dark:text-neutral-300">Muro Vertical</span>
-                    </div>
-
-                    <div className="flex flex-col items-center gap-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-neutral-900 p-2 rounded-xl transition-colors" onClick={() => addDecoration('bar')}>
-                        <div className="h-24 flex items-center justify-center w-full">
-                            <div className="scale-75">
-                                {renderDecoration({ id: 'preview', type: 'bar', x: 0, y: 0 }, true)}
+                <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                    {filteredTemplates.length === 0 ? (
+                        <p className="text-xs text-center text-slate-400 dark:text-neutral-500 py-4">No se encontraron formas.</p>
+                    ) : (
+                        filteredTemplates.map(template => (
+                            <div key={template.type} className="flex flex-col items-center gap-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-neutral-900 p-2 rounded-xl transition-colors" onClick={() => addDecoration(template.type)}>
+                                <div className="h-20 flex items-center justify-center w-full overflow-hidden">
+                                    {/* Preview scaled down if it's too big */}
+                                    <div className="scale-[0.6] flex items-center justify-center">
+                                        {renderDecoration({ id: 'preview', type: template.type as any, x: 0, y: 0, width: template.defaultWidth, height: template.defaultHeight }, true)}
+                                    </div>
+                                </div>
+                                <span className="text-xs font-medium text-slate-600 dark:text-neutral-300 text-center">{template.name}</span>
                             </div>
-                        </div>
-                        <span className="text-xs font-medium text-slate-600 dark:text-neutral-300">Barra / Mostrador</span>
-                    </div>
-
-                    <div className="flex flex-col items-center gap-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-neutral-900 p-2 rounded-xl transition-colors" onClick={() => addDecoration('plant')}>
-                        <div className="h-16 flex items-center justify-center w-full">
-                            {renderDecoration({ id: 'preview', type: 'plant', x: 0, y: 0 }, true)}
-                        </div>
-                        <span className="text-xs font-medium text-slate-600 dark:text-neutral-300">Planta / Maceta</span>
-                    </div>
+                        ))
+                    )}
                 </div>
             </div>
 
@@ -235,8 +277,8 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
                 })}
 
                 <div className="absolute bottom-4 left-4 rounded-lg bg-white/80 p-3 text-xs text-slate-500 backdrop-blur-sm dark:bg-neutral-900/80 dark:text-neutral-400 border border-slate-100 dark:border-neutral-800 z-20 shadow-sm">
-                    <p>💡 Arrastra mesas o estructuras para organizar el {location}.</p>
-                    <p>💡 Doble clic en una mesa para editar.</p>
+                    <p>💡 Activa "Editar" para borrar o redimensionar estructuras.</p>
+                    <p>💡 Arrastra el círculo naranja de una estructura para cambiar su tamaño.</p>
                 </div>
             </div>
         </div>
