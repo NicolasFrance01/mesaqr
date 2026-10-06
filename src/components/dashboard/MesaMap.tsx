@@ -39,6 +39,15 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
     const [isEditMode, setIsEditMode] = useState(false);
     const [searchShape, setSearchShape] = useState('');
 
+    // Selection State
+    const [selectedMesas, setSelectedMesas] = useState<string[]>([]);
+    const [selectedDecorations, setSelectedDecorations] = useState<string[]>([]);
+    const [selectionBox, setSelectionBox] = useState<{ startX: number, startY: number, endX: number, endY: number } | null>(null);
+    
+    // Group Drag State
+    const [draggingId, setDraggingId] = useState<string | null>(null);
+    const [groupDragOffset, setGroupDragOffset] = useState({ x: 0, y: 0 });
+
     useEffect(() => {
         setIsClient(true);
     }, []);
@@ -55,6 +64,9 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
         } else {
             setDecorations([]);
         }
+        // clear selections on location change
+        setSelectedMesas([]);
+        setSelectedDecorations([]);
     }, [location, isClient]);
 
     const saveDecorations = (newDecorations: Decoration[]) => {
@@ -62,20 +74,123 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
         localStorage.setItem(`mesa_decor_${location}`, JSON.stringify(newDecorations));
     };
 
+    const handleMapPointerDown = (e: React.PointerEvent) => {
+        if (e.target !== containerRef.current) return;
+        
+        const rect = containerRef.current.getBoundingClientRect();
+        const startX = e.clientX - rect.left;
+        const startY = e.clientY - rect.top;
+        
+        setSelectionBox({ startX, startY, endX: startX, endY: startY });
+        setSelectedMesas([]);
+        setSelectedDecorations([]);
+
+        const onPointerMove = (moveEvent: PointerEvent) => {
+            setSelectionBox(prev => {
+                if (!prev) return null;
+                return { ...prev, endX: moveEvent.clientX - rect.left, endY: moveEvent.clientY - rect.top };
+            });
+        };
+
+        const onPointerUp = (upEvent: PointerEvent) => {
+            document.removeEventListener('pointermove', onPointerMove);
+            document.removeEventListener('pointerup', onPointerUp);
+            
+            setSelectionBox(prev => {
+                if (!prev) return null;
+                const minX = Math.min(prev.startX, prev.endX);
+                const maxX = Math.max(prev.startX, prev.endX);
+                const minY = Math.min(prev.startY, prev.endY);
+                const maxY = Math.max(prev.startY, prev.endY);
+                
+                if (maxX - minX > 5 || maxY - minY > 5) {
+                    const newSelMesas = mesas.filter(m => {
+                        const cx = (m.x || 0) + 48; // ~ center of 96px width
+                        const cy = (m.y || 0) + 48;
+                        return cx >= minX && cx <= maxX && cy >= minY && cy <= maxY;
+                    }).map(m => m.id);
+                    
+                    const newSelDecs = decorations.filter(d => {
+                        const cx = d.x + (d.width / 2);
+                        const cy = d.y + (d.height / 2);
+                        return cx >= minX && cx <= maxX && cy >= minY && cy <= maxY;
+                    }).map(d => d.id);
+
+                    setSelectedMesas(newSelMesas);
+                    setSelectedDecorations(newSelDecs);
+                }
+                
+                return null;
+            });
+        };
+
+        document.addEventListener('pointermove', onPointerMove);
+        document.addEventListener('pointerup', onPointerUp);
+    };
+
+    const handleDragStart = (id: string, isMesa: boolean) => {
+        const isSelected = isMesa ? selectedMesas.includes(id) : selectedDecorations.includes(id);
+        if (!isSelected) {
+            setSelectedMesas([]);
+            setSelectedDecorations([]);
+        }
+        setDraggingId(id);
+    };
+
+    const handleDrag = (e: any, info: any) => {
+        if (draggingId) {
+            setGroupDragOffset(info.offset);
+        }
+    };
+
+    const applyGroupDragOffset = (offset: { x: number, y: number }) => {
+        if (selectedMesas.length > 0) {
+            selectedMesas.forEach(mId => {
+                const mesa = mesas.find(m => m.id === mId);
+                if (mesa) {
+                    upsertMesa({ ...mesa, x: Math.max(0, Math.round((mesa.x || 0) + offset.x)), y: Math.max(0, Math.round((mesa.y || 0) + offset.y)) });
+                }
+            });
+        }
+        if (selectedDecorations.length > 0) {
+            const updated = decorations.map(d => {
+                if (selectedDecorations.includes(d.id)) {
+                    return { ...d, x: Math.max(0, Math.round(d.x + offset.x)), y: Math.max(0, Math.round(d.y + offset.y)) };
+                }
+                return d;
+            });
+            saveDecorations(updated);
+        }
+    };
+
     const handleDragEndMesa = (mesa: Mesa, info: any) => {
-        const newX = Math.round(mesa.x + info.offset.x);
-        const newY = Math.round(mesa.y + info.offset.y);
-        upsertMesa({ ...mesa, x: Math.max(0, newX), y: Math.max(0, newY) });
+        setDraggingId(null);
+        setGroupDragOffset({ x: 0, y: 0 });
+        
+        if (selectedMesas.includes(mesa.id)) {
+            applyGroupDragOffset(info.offset);
+        } else {
+            const newX = Math.round(mesa.x + info.offset.x);
+            const newY = Math.round(mesa.y + info.offset.y);
+            upsertMesa({ ...mesa, x: Math.max(0, newX), y: Math.max(0, newY) });
+        }
     };
 
     const handleDragEndDecoration = (id: string, info: any) => {
-        const dec = decorations.find(d => d.id === id);
-        if (!dec) return;
-        const newX = Math.round(dec.x + info.offset.x);
-        const newY = Math.round(dec.y + info.offset.y);
+        setDraggingId(null);
+        setGroupDragOffset({ x: 0, y: 0 });
         
-        const updated = decorations.map(d => d.id === id ? { ...d, x: Math.max(0, newX), y: Math.max(0, newY) } : d);
-        saveDecorations(updated);
+        if (selectedDecorations.includes(id)) {
+            applyGroupDragOffset(info.offset);
+        } else {
+            const dec = decorations.find(d => d.id === id);
+            if (!dec) return;
+            const newX = Math.round(dec.x + info.offset.x);
+            const newY = Math.round(dec.y + info.offset.y);
+            
+            const updated = decorations.map(d => d.id === id ? { ...d, x: Math.max(0, newX), y: Math.max(0, newY) } : d);
+            saveDecorations(updated);
+        }
     };
 
     const handleResizePointerDown = (e: React.PointerEvent, decId: string) => {
@@ -83,7 +198,6 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
         const startX = e.clientX;
         const startY = e.clientY;
         
-        // Find current dimensions without relying on potentially stale closure state later
         setDecorations(prev => {
             const dec = prev.find(d => d.id === decId);
             if (!dec) return prev;
@@ -106,7 +220,6 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
             const onPointerUp = () => {
                 document.removeEventListener('pointermove', onPointerMove);
                 document.removeEventListener('pointerup', onPointerUp);
-                // Save final state to localStorage
                 setDecorations(current => {
                     localStorage.setItem(`mesa_decor_${location}`, JSON.stringify(current));
                     return current;
@@ -137,19 +250,27 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
 
     const removeDecoration = (id: string) => {
         saveDecorations(decorations.filter(d => d.id !== id));
+        setSelectedDecorations(prev => prev.filter(selectedId => selectedId !== id));
     };
 
     if (!isClient) return <div className="h-[600px] w-full rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 dark:border-neutral-800 dark:bg-neutral-900/50" />;
 
     const renderDecoration = (dec: Decoration, isPreview = false) => {
+        const isSelected = !isPreview && selectedDecorations.includes(dec.id);
+        const xPos = dec.x + (isSelected && draggingId !== dec.id ? groupDragOffset.x : 0);
+        const yPos = dec.y + (isSelected && draggingId !== dec.id ? groupDragOffset.y : 0);
+
         const props = isPreview ? {} : {
             drag: true,
             dragConstraints: containerRef,
             dragElastic: 0,
             dragMomentum: false,
+            onDragStart: () => handleDragStart(dec.id, false),
+            onDrag: handleDrag,
             onDragEnd: (e: any, info: any) => handleDragEndDecoration(dec.id, info),
             initial: { x: dec.x, y: dec.y },
-            animate: { x: dec.x, y: dec.y }
+            animate: { x: xPos, y: yPos },
+            transition: { duration: 0 }
         };
 
         const className = cn(
@@ -159,7 +280,8 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
             dec.type === 'wall-v' && "bg-slate-400 dark:bg-neutral-600 rounded-sm",
             dec.type === 'plant' && "bg-emerald-500/80 rounded-full border-4 border-emerald-600/50 dark:border-emerald-800",
             dec.type === 'bar' && "bg-amber-700/80 rounded-md border-4 border-amber-900/50 dark:border-amber-950",
-            dec.type === 'text' && (isPreview || isEditMode ? "bg-slate-200/50 dark:bg-neutral-800/50 border border-dashed border-slate-400 dark:border-neutral-600 rounded-md" : "bg-transparent shadow-none hover:shadow-none font-bold text-slate-700 dark:text-neutral-300 text-lg")
+            dec.type === 'text' && (isPreview || isEditMode ? "bg-slate-200/50 dark:bg-neutral-800/50 border border-dashed border-slate-400 dark:border-neutral-600 rounded-md" : "bg-transparent shadow-none hover:shadow-none font-bold text-slate-700 dark:text-neutral-300 text-lg"),
+            isSelected && "ring-2 ring-blue-500 ring-offset-1 dark:ring-offset-neutral-900"
         );
 
         const handleEditText = () => {
@@ -213,7 +335,7 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
     return (
         <div className="flex gap-4">
             {/* Palette */}
-            <div className="w-56 flex-shrink-0 flex flex-col rounded-2xl bg-white shadow-sm border border-slate-200 dark:bg-neutral-950 dark:border-neutral-800 h-[600px] overflow-hidden">
+            <div className="w-56 flex-shrink-0 flex flex-col rounded-2xl bg-white shadow-sm border border-slate-200 dark:bg-neutral-950 dark:border-neutral-800 h-[600px] overflow-hidden select-none">
                 <div className="p-4 border-b border-slate-100 dark:border-neutral-800">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="font-bold text-sm text-slate-800 dark:text-neutral-200">Estructuras</h3>
@@ -244,7 +366,6 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
                         filteredTemplates.map(template => (
                             <div key={template.type} className="flex flex-col items-center gap-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-neutral-900 p-2 rounded-xl transition-colors" onClick={() => addDecoration(template.type)}>
                                 <div className="h-20 flex items-center justify-center w-full overflow-hidden">
-                                    {/* Preview scaled down if it's too big */}
                                     <div className="scale-[0.6] flex items-center justify-center">
                                         {renderDecoration({ id: 'preview', type: template.type as any, x: 0, y: 0, width: template.defaultWidth, height: template.defaultHeight, text: template.type === 'text' ? 'Texto' : undefined }, true)}
                                     </div>
@@ -259,12 +380,25 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
             {/* Map Area */}
             <div 
                 ref={containerRef} 
-                className="relative h-[600px] flex-1 overflow-hidden rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 shadow-inner dark:border-neutral-800 dark:bg-neutral-900/50"
+                onPointerDown={handleMapPointerDown}
+                className="relative h-[600px] flex-1 overflow-hidden rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 shadow-inner dark:border-neutral-800 dark:bg-neutral-900/50 select-none cursor-crosshair"
                 style={{
                     backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(0,0,0,0.05) 1px, transparent 0)',
                     backgroundSize: '32px 32px'
                 }}
             >
+                {selectionBox && (
+                    <div 
+                        className="absolute border border-blue-500 bg-blue-500/20 z-50 pointer-events-none rounded-sm"
+                        style={{
+                            left: Math.min(selectionBox.startX, selectionBox.endX),
+                            top: Math.min(selectionBox.startY, selectionBox.endY),
+                            width: Math.abs(selectionBox.endX - selectionBox.startX),
+                            height: Math.abs(selectionBox.endY - selectionBox.startY)
+                        }}
+                    />
+                )}
+
                 {/* Render Decorations (Behind tables) */}
                 {decorations.map(dec => renderDecoration(dec))}
 
@@ -272,6 +406,10 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
                 {mesas.map((mesa) => {
                     const pedidosPendientes = pedidos.filter(p => p.mesaId === mesa.id && p.estado === 'pendiente').length;
                     const hasPending = pedidosPendientes > 0;
+                    
+                    const isSelected = selectedMesas.includes(mesa.id);
+                    const xPos = (mesa.x || 0) + (isSelected && draggingId !== mesa.id ? groupDragOffset.x : 0);
+                    const yPos = (mesa.y || 0) + (isSelected && draggingId !== mesa.id ? groupDragOffset.y : 0);
 
                     const statusConfig = {
                         libre: {
@@ -297,13 +435,16 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
                             dragConstraints={containerRef}
                             dragElastic={0}
                             dragMomentum={false}
+                            onDragStart={() => handleDragStart(mesa.id, true)}
+                            onDrag={handleDrag}
                             onDragEnd={(e, info) => handleDragEndMesa(mesa, info)}
                             initial={{ x: mesa.x || 0, y: mesa.y || 0 }}
-                            animate={{ x: mesa.x || 0, y: mesa.y || 0 }}
+                            animate={{ x: xPos, y: yPos }}
+                            transition={{ duration: 0 }}
                             className={cn(
                                 "absolute flex h-24 w-24 cursor-grab flex-col items-center justify-center rounded-2xl border-2 shadow-lg active:cursor-grabbing z-10",
                                 config.color,
-                                config.ring
+                                isSelected ? "ring-4 ring-blue-500 ring-offset-2 dark:ring-offset-neutral-900" : config.ring
                             )}
                             onDoubleClick={() => onEdit(mesa)}
                         >
@@ -319,7 +460,7 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
                 })}
 
                 <div className="absolute bottom-4 left-4 rounded-lg bg-white/80 p-3 text-xs text-slate-500 backdrop-blur-sm dark:bg-neutral-900/80 dark:text-neutral-400 border border-slate-100 dark:border-neutral-800 z-20 shadow-sm">
-                    <p>💡 Activa "Editar" para borrar o redimensionar estructuras.</p>
+                    <p>💡 Arrastra el cursor por el mapa para seleccionar múltiples objetos.</p>
                     <p>💡 Doble clic en un texto para editar su contenido.</p>
                 </div>
             </div>
