@@ -1,6 +1,7 @@
 import { Sidebar } from '@/components/dashboard/Sidebar';
 import { NotificationsPanel } from '@/components/dashboard/NotificationsPanel';
 import { LayoutDashboard, UtensilsCrossed, ClipboardList, LogOut, ChefHat } from 'lucide-react';
+import { ThemeToggle } from '@/components/dashboard/ThemeToggle';
 
 const menuItems = [
     { icon: LayoutDashboard, label: 'Resumen', href: '/dashboard' },
@@ -15,9 +16,12 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     return (
-        <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900">
+        <div className="flex min-h-screen bg-white dark:bg-slate-900 transition-colors duration-300">
             <Sidebar />
-            <main className="flex-1 overflow-y-auto p-8 flex flex-col justify-between">
+            <main className="flex-1 overflow-y-auto p-8 flex flex-col justify-between relative" style={{ zoom: 0.8 }}>
+                <div className="absolute top-4 right-8 z-50">
+                    <ThemeToggle />
+                </div>
                 <div className="mx-auto max-w-7xl w-full">
                     <NotificationsPanel />
                     {children}

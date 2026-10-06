@@ -15,11 +15,13 @@ export default function MesasPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [editingMesa, setEditingMesa] = useState<Mesa | null>(null);
     const [viewMode, setViewMode] = useState<'grid' | 'map'>('map');
+    const [activeFilter, setActiveFilter] = useState('Todos');
 
-    const filteredMesas = mesas.filter(m =>
-        m.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        m.ubicacion.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredMesas = mesas.filter(m => {
+        const matchesSearch = m.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || m.ubicacion.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesFilter = activeFilter === 'Todos' || m.ubicacion.toLowerCase() === activeFilter.toLowerCase();
+        return matchesSearch && matchesFilter;
+    });
 
     const handleAddMesa = () => {
         const newId = `m${mesas.length + 1}`;
@@ -71,7 +73,15 @@ export default function MesasPage() {
                 </div>
                 <div className="flex gap-2">
                     {['Todos', 'Salón', 'Patio', 'Barra'].map((loc) => (
-                        <button key={loc} className="rounded-lg px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800">
+                        <button 
+                            key={loc} 
+                            onClick={() => setActiveFilter(loc)}
+                            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+                                activeFilter === loc 
+                                ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-400' 
+                                : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
+                            }`}
+                        >
                             {loc}
                         </button>
                     ))}
