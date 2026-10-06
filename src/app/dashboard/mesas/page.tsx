@@ -66,7 +66,7 @@ export default function MesasPage() {
                     <input
                         type="text"
                         placeholder="Buscar por nombre o ubicación..."
-                        className="w-full rounded-lg border-none bg-slate-50 pl-10 pr-4 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-500/20 dark:bg-neutral-900"
+                        className="w-full rounded-lg border-none bg-slate-50 pl-10 pr-4 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-orange-500/20 dark:bg-neutral-900 dark:text-white"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />

@@ -106,7 +106,7 @@ export default function HistorialPage() {
                     <label className="text-xs font-bold uppercase text-slate-500">Desde</label>
                     <input
                         type="date"
-                        className="w-full rounded-lg border border-slate-200 bg-slate-50 p-2 text-sm outline-none focus:border-orange-500 dark:border-slate-800 dark:bg-slate-900"
+                        className="w-full rounded-lg border border-slate-200 bg-slate-50 p-2 text-sm text-slate-900 outline-none focus:border-orange-500 dark:border-slate-800 dark:bg-slate-900 dark:text-white"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
                     />
@@ -115,7 +115,7 @@ export default function HistorialPage() {
                     <label className="text-xs font-bold uppercase text-slate-500">Hasta</label>
                     <input
                         type="date"
-                        className="w-full rounded-lg border border-slate-200 bg-slate-50 p-2 text-sm outline-none focus:border-orange-500 dark:border-slate-800 dark:bg-slate-900"
+                        className="w-full rounded-lg border border-slate-200 bg-slate-50 p-2 text-sm text-slate-900 outline-none focus:border-orange-500 dark:border-slate-800 dark:bg-slate-900 dark:text-white"
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
                     />
@@ -155,7 +155,7 @@ export default function HistorialPage() {
                         <input
                             type="text"
                             placeholder="Usuario..."
-                            className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-8 pr-2 text-sm outline-none focus:border-orange-500 dark:border-slate-800 dark:bg-slate-900"
+                            className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-8 pr-2 text-sm text-slate-900 outline-none focus:border-orange-500 dark:border-slate-800 dark:bg-slate-900 dark:text-white"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />

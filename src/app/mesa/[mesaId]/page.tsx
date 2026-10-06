@@ -187,7 +187,7 @@ export default function MesaQRPage({ params }: { params: Promise<{ mesaId: strin
             <input
               type="text"
               placeholder="Tu Nombre (ej: Nico)"
-              className="w-full rounded-xl border border-slate-200 p-4 text-center text-lg outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 dark:border-slate-800 dark:bg-slate-900"
+              className="w-full rounded-xl border border-slate-200 p-4 text-center text-lg text-slate-900 outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 dark:border-slate-800 dark:bg-slate-900 dark:text-white"
               value={nombreInput}
               onChange={(e) => setNombreInput(e.target.value)}
             />
@@ -291,7 +291,7 @@ export default function MesaQRPage({ params }: { params: Promise<{ mesaId: strin
               </div>
               <div className="flex gap-2">
                 <input
-                  className="flex-1 bg-slate-50 rounded-lg px-3 text-sm dark:bg-slate-800"
+                  className="flex-1 bg-slate-50 rounded-lg px-3 text-sm text-slate-900 dark:bg-slate-800 dark:text-white"
                   placeholder="Nombre invitado..."
                   value={inviteName}
                   onChange={(e) => setInviteName(e.target.value)}

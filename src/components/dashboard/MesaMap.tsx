@@ -216,8 +216,10 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
             upsertMesa(updated);
         }
         
-        setDraggingId(null);
         setGroupDragOffset({ x: 0, y: 0 });
+        // Delay clearing draggingId so the context has time to propagate the new mesas array
+        // before the useEffect syncs localMesas with the old mesas array.
+        setTimeout(() => setDraggingId(null), 150);
     };
 
     const handleDragEndDecoration = (id: string, info: any) => {
@@ -234,12 +236,16 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
             }
         }
 
-        setDraggingId(null);
         setGroupDragOffset({ x: 0, y: 0 });
+        setTimeout(() => setDraggingId(null), 150);
     };
 
     const handleResizePointerDown = (e: React.PointerEvent, decId: string) => {
         e.stopPropagation();
+        
+        const target = e.currentTarget;
+        target.setPointerCapture(e.pointerId);
+
         const rect = containerRef.current?.getBoundingClientRect();
         const scaleX = rect ? rect.width / (containerRef.current?.offsetWidth || 1) : 1;
         const scaleY = rect ? rect.height / (containerRef.current?.offsetHeight || 1) : 1;
@@ -247,38 +253,37 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
         const startX = e.clientX / scaleX;
         const startY = e.clientY / scaleY;
         
-        setDecorations(prev => {
-            const dec = prev.find(d => d.id === decId);
-            if (!dec) return prev;
+        const dec = decorations.find(d => d.id === decId);
+        if (!dec) return;
+        
+        const startWidth = dec.width;
+        const startHeight = dec.height;
+
+        const onPointerMove = (moveEvent: PointerEvent) => {
+            const dx = (moveEvent.clientX / scaleX) - startX;
+            const dy = (moveEvent.clientY / scaleY) - startY;
             
-            const startWidth = dec.width;
-            const startHeight = dec.height;
+            const minW = 16;
+            const minH = 16;
+            const newW = Math.max(minW, startWidth + dx);
+            const newH = Math.max(minH, startHeight + dy);
 
-            const onPointerMove = (moveEvent: PointerEvent) => {
-                const dx = (moveEvent.clientX / scaleX) - startX;
-                const dy = (moveEvent.clientY / scaleY) - startY;
-                
-                const minW = 16;
-                const minH = 16;
-                const newW = Math.max(minW, startWidth + dx);
-                const newH = Math.max(minH, startHeight + dy);
+            setDecorations(current => current.map(d => d.id === decId ? { ...d, width: newW, height: newH } : d));
+        };
 
-                setDecorations(current => current.map(d => d.id === decId ? { ...d, width: newW, height: newH } : d));
-            };
+        const onPointerUp = (upEvent: PointerEvent) => {
+            target.releasePointerCapture(upEvent.pointerId);
+            target.removeEventListener('pointermove', onPointerMove as any);
+            target.removeEventListener('pointerup', onPointerUp as any);
+            
+            setDecorations(current => {
+                localStorage.setItem(`mesa_decor_${location}`, JSON.stringify(current));
+                return current;
+            });
+        };
 
-            const onPointerUp = () => {
-                document.removeEventListener('pointermove', onPointerMove);
-                document.removeEventListener('pointerup', onPointerUp);
-                setDecorations(current => {
-                    localStorage.setItem(`mesa_decor_${location}`, JSON.stringify(current));
-                    return current;
-                });
-            };
-
-            document.addEventListener('pointermove', onPointerMove);
-            document.addEventListener('pointerup', onPointerUp);
-            return prev;
-        });
+        target.addEventListener('pointermove', onPointerMove as any);
+        target.addEventListener('pointerup', onPointerUp as any);
     };
 
     const addDecoration = (type: Decoration['type']) => {
@@ -402,7 +407,7 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
                             placeholder="Buscar forma..."
                             value={searchShape}
                             onChange={(e) => setSearchShape(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-1.5 text-xs outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 dark:bg-neutral-900 dark:border-neutral-800 dark:text-white"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-900 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 dark:bg-neutral-900 dark:border-neutral-800 dark:text-white"
                         />
                     </div>
                     <p className="text-[10px] text-slate-500 dark:text-neutral-500 mt-2">Haz clic para agregar al mapa</p>

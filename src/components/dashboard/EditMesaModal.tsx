@@ -41,7 +41,7 @@ export function EditMesaModal({ isOpen, onClose, mesa, onSave }: EditMesaModalPr
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nombre</label>
                             <input
-                                className="w-full rounded-lg border border-slate-200 p-2 text-sm dark:bg-slate-800 dark:border-slate-700"
+                                className="w-full rounded-lg border border-slate-200 p-2 text-sm text-slate-900 dark:text-white dark:bg-slate-800 dark:border-slate-700"
                                 value={formData.nombre}
                                 onChange={e => setFormData({ ...formData, nombre: e.target.value })}
                             />
@@ -52,7 +52,7 @@ export function EditMesaModal({ isOpen, onClose, mesa, onSave }: EditMesaModalPr
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Capacidad</label>
                                 <input
                                     type="number"
-                                    className="w-full rounded-lg border border-slate-200 p-2 text-sm dark:bg-slate-800 dark:border-slate-700"
+                                    className="w-full rounded-lg border border-slate-200 p-2 text-sm text-slate-900 dark:text-white dark:bg-slate-800 dark:border-slate-700"
                                     value={formData.capacidad}
                                     onChange={e => setFormData({ ...formData, capacidad: parseInt(e.target.value) || 0 })}
                                 />
@@ -60,7 +60,7 @@ export function EditMesaModal({ isOpen, onClose, mesa, onSave }: EditMesaModalPr
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Ubicación</label>
                                 <select
-                                    className="w-full rounded-lg border border-slate-200 p-2 text-sm dark:bg-slate-800 dark:border-slate-700"
+                                    className="w-full rounded-lg border border-slate-200 p-2 text-sm text-slate-900 dark:text-white dark:bg-slate-800 dark:border-slate-700"
                                     value={formData.ubicacion}
                                     onChange={e => setFormData({ ...formData, ubicacion: e.target.value })}
                                 >
@@ -75,7 +75,7 @@ export function EditMesaModal({ isOpen, onClose, mesa, onSave }: EditMesaModalPr
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Estado (Manual)</label>
                             <select
-                                className="w-full rounded-lg border border-slate-200 p-2 text-sm dark:bg-slate-800 dark:border-slate-700"
+                                className="w-full rounded-lg border border-slate-200 p-2 text-sm text-slate-900 dark:text-white dark:bg-slate-800 dark:border-slate-700"
                                 value={formData.estado}
                                 onChange={e => setFormData({ ...formData, estado: e.target.value as any })}
                             >
