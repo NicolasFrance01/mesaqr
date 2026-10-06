@@ -15,11 +15,11 @@ export default function MesasPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [editingMesa, setEditingMesa] = useState<Mesa | null>(null);
     const [viewMode, setViewMode] = useState<'grid' | 'map'>('map');
-    const [activeFilter, setActiveFilter] = useState('Todos');
+    const [activeFilter, setActiveFilter] = useState('Salón');
 
     const filteredMesas = mesas.filter(m => {
         const matchesSearch = m.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || m.ubicacion.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesFilter = activeFilter === 'Todos' || m.ubicacion.toLowerCase() === activeFilter.toLowerCase();
+        const matchesFilter = m.ubicacion.toLowerCase() === activeFilter.toLowerCase();
         return matchesSearch && matchesFilter;
     });
 
@@ -72,7 +72,7 @@ export default function MesasPage() {
                     />
                 </div>
                 <div className="flex gap-2">
-                    {['Todos', 'Salón', 'Patio', 'Barra'].map((loc) => (
+                    {['Salón', 'Patio', 'Barra'].map((loc) => (
                         <button 
                             key={loc} 
                             onClick={() => setActiveFilter(loc)}
@@ -111,7 +111,7 @@ export default function MesasPage() {
                     ))}
                 </div>
             ) : (
-                <MesaMap mesas={filteredMesas} onEdit={(m) => setEditingMesa(m)} />
+                <MesaMap mesas={filteredMesas} onEdit={(m) => setEditingMesa(m)} location={activeFilter} />
             )}
 
             {editingMesa && (
