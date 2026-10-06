@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { Mesa } from '@/types/mesa';
 import { useApp } from '@/lib/context';
 import { cn } from '@/lib/utils';
-import { AlertCircle, Plus, Trash2, Search } from 'lucide-react';
+import { AlertCircle, Plus, Trash2, Search, MoveDiagonal } from 'lucide-react';
 
 interface MesaMapProps {
     mesas: Mesa[];
@@ -76,18 +76,45 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
         saveDecorations(updated);
     };
 
-    const handleResizeDecoration = (id: string, dx: number, dy: number) => {
-        const dec = decorations.find(d => d.id === id);
-        if (!dec) return;
+    const handleResizePointerDown = (e: React.PointerEvent, decId: string) => {
+        e.stopPropagation();
+        const startX = e.clientX;
+        const startY = e.clientY;
         
-        // Prevent getting too small
-        const minW = 16;
-        const minH = 16;
-        const newW = Math.max(minW, dec.width + dx);
-        const newH = Math.max(minH, dec.height + dy);
+        // Find current dimensions without relying on potentially stale closure state later
+        setDecorations(prev => {
+            const dec = prev.find(d => d.id === decId);
+            if (!dec) return prev;
+            
+            const startWidth = dec.width;
+            const startHeight = dec.height;
 
-        const updated = decorations.map(d => d.id === id ? { ...d, width: newW, height: newH } : d);
-        saveDecorations(updated); // Note: might cause frequent re-renders during drag, better to use local state during drag and save on end in a full implementation, but works fine for simple admin tools.
+            const onPointerMove = (moveEvent: PointerEvent) => {
+                const dx = moveEvent.clientX - startX;
+                const dy = moveEvent.clientY - startY;
+                
+                const minW = 16;
+                const minH = 16;
+                const newW = Math.max(minW, startWidth + dx);
+                const newH = Math.max(minH, startHeight + dy);
+
+                setDecorations(current => current.map(d => d.id === decId ? { ...d, width: newW, height: newH } : d));
+            };
+
+            const onPointerUp = () => {
+                document.removeEventListener('pointermove', onPointerMove);
+                document.removeEventListener('pointerup', onPointerUp);
+                // Save final state to localStorage
+                setDecorations(current => {
+                    localStorage.setItem(`mesa_decor_${location}`, JSON.stringify(current));
+                    return current;
+                });
+            };
+
+            document.addEventListener('pointermove', onPointerMove);
+            document.addEventListener('pointerup', onPointerUp);
+            return prev;
+        });
     };
 
     const addDecoration = (type: Decoration['type']) => {
@@ -149,15 +176,12 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
                         </button>
                         
                         {/* Resize Handle */}
-                        <motion.div
-                            drag
-                            dragConstraints={{ top: 0, left: 0, bottom: 0, right: 0 }}
-                            dragElastic={0}
-                            dragMomentum={false}
-                            onPointerDownCapture={(e) => e.stopPropagation()} // Prevent parent dragging
-                            onDrag={(e, info) => handleResizeDecoration(dec.id, info.delta.x, info.delta.y)}
-                            className="absolute -bottom-2 -right-2 w-4 h-4 bg-orange-500 rounded-full cursor-se-resize shadow-sm z-50 hover:scale-125 transition-transform"
-                        />
+                        <div
+                            onPointerDown={(e) => handleResizePointerDown(e, dec.id)}
+                            className="absolute -bottom-2 -right-2 w-6 h-6 flex items-center justify-center bg-orange-500 text-white rounded-full cursor-se-resize shadow-md z-50 hover:scale-110 transition-transform"
+                        >
+                            <MoveDiagonal className="w-3.5 h-3.5" />
+                        </div>
                     </>
                 )}
             </motion.div>
