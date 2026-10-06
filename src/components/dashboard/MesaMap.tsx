@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { Mesa } from '@/types/mesa';
 import { useApp } from '@/lib/context';
 import { cn } from '@/lib/utils';
-import { AlertCircle, Plus, Trash2, Search, MoveDiagonal } from 'lucide-react';
+import { AlertCircle, Plus, Trash2, Search, MoveDiagonal, Type } from 'lucide-react';
 
 interface MesaMapProps {
     mesas: Mesa[];
@@ -15,11 +15,12 @@ interface MesaMapProps {
 
 interface Decoration {
     id: string;
-    type: 'wall-h' | 'wall-v' | 'plant' | 'bar';
+    type: 'wall-h' | 'wall-v' | 'plant' | 'bar' | 'text';
     x: number;
     y: number;
     width: number;
     height: number;
+    text?: string;
 }
 
 const DECORATION_TEMPLATES = [
@@ -27,6 +28,7 @@ const DECORATION_TEMPLATES = [
     { type: 'wall-v', name: 'Muro Vertical', defaultWidth: 16, defaultHeight: 128 },
     { type: 'bar', name: 'Barra / Mostrador', defaultWidth: 192, defaultHeight: 64 },
     { type: 'plant', name: 'Planta / Maceta', defaultWidth: 48, defaultHeight: 48 },
+    { type: 'text', name: 'Texto Libre', defaultWidth: 120, defaultHeight: 40 },
 ] as const;
 
 export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
@@ -127,7 +129,8 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
             x: 50,
             y: 50,
             width: template.defaultWidth,
-            height: template.defaultHeight
+            height: template.defaultHeight,
+            text: type === 'text' ? 'Nuevo Texto' : undefined
         };
         saveDecorations([...decorations, newDec]);
     };
@@ -150,13 +153,23 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
         };
 
         const className = cn(
-            "absolute flex items-center justify-center",
+            "absolute flex items-center justify-center overflow-hidden",
             !isPreview && "cursor-grab active:cursor-grabbing shadow-sm hover:shadow-md transition-shadow",
             dec.type === 'wall-h' && "bg-slate-400 dark:bg-neutral-600 rounded-sm",
             dec.type === 'wall-v' && "bg-slate-400 dark:bg-neutral-600 rounded-sm",
             dec.type === 'plant' && "bg-emerald-500/80 rounded-full border-4 border-emerald-600/50 dark:border-emerald-800",
-            dec.type === 'bar' && "bg-amber-700/80 rounded-md border-4 border-amber-900/50 dark:border-amber-950"
+            dec.type === 'bar' && "bg-amber-700/80 rounded-md border-4 border-amber-900/50 dark:border-amber-950",
+            dec.type === 'text' && (isPreview || isEditMode ? "bg-slate-200/50 dark:bg-neutral-800/50 border border-dashed border-slate-400 dark:border-neutral-600 rounded-md" : "bg-transparent shadow-none hover:shadow-none font-bold text-slate-700 dark:text-neutral-300 text-lg")
         );
+
+        const handleEditText = () => {
+            if (dec.type !== 'text' || isPreview) return;
+            const newText = prompt('Ingresa el texto:', dec.text || '');
+            if (newText !== null) {
+                const updated = decorations.map(d => d.id === dec.id ? { ...d, text: newText } : d);
+                saveDecorations(updated);
+            }
+        };
 
         const content = (
             <motion.div
@@ -164,7 +177,12 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
                 {...props}
                 className={className}
                 style={isPreview ? { position: 'relative', x: 0, y: 0, width: dec.width, height: dec.height } : { width: dec.width, height: dec.height }}
+                onDoubleClick={handleEditText}
             >
+                {dec.type === 'text' && (
+                    <span className="truncate px-2 text-center select-none w-full">{dec.text}</span>
+                )}
+
                 {!isPreview && isEditMode && (
                     <>
                         <button 
@@ -228,7 +246,7 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
                                 <div className="h-20 flex items-center justify-center w-full overflow-hidden">
                                     {/* Preview scaled down if it's too big */}
                                     <div className="scale-[0.6] flex items-center justify-center">
-                                        {renderDecoration({ id: 'preview', type: template.type as any, x: 0, y: 0, width: template.defaultWidth, height: template.defaultHeight }, true)}
+                                        {renderDecoration({ id: 'preview', type: template.type as any, x: 0, y: 0, width: template.defaultWidth, height: template.defaultHeight, text: template.type === 'text' ? 'Texto' : undefined }, true)}
                                     </div>
                                 </div>
                                 <span className="text-xs font-medium text-slate-600 dark:text-neutral-300 text-center">{template.name}</span>
@@ -302,7 +320,7 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
 
                 <div className="absolute bottom-4 left-4 rounded-lg bg-white/80 p-3 text-xs text-slate-500 backdrop-blur-sm dark:bg-neutral-900/80 dark:text-neutral-400 border border-slate-100 dark:border-neutral-800 z-20 shadow-sm">
                     <p>💡 Activa "Editar" para borrar o redimensionar estructuras.</p>
-                    <p>💡 Arrastra el círculo naranja de una estructura para cambiar su tamaño.</p>
+                    <p>💡 Doble clic en un texto para editar su contenido.</p>
                 </div>
             </div>
         </div>
