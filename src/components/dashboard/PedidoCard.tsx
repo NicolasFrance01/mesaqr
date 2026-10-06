@@ -22,9 +22,9 @@ export function PedidoCard({ pedido, onConfirm, onStateChange, mesaNombre, confi
         <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all hover:shadow-md dark:border-slate-800 dark:bg-slate-950"
+            className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all hover:shadow-md dark:border-neutral-800 dark:bg-neutral-950"
         >
-            <div className="border-b border-slate-100 bg-slate-50/50 p-4 dark:border-slate-800 dark:bg-slate-900/50">
+            <div className="border-b border-slate-100 bg-slate-50/50 p-4 dark:border-neutral-800 dark:bg-neutral-900/50">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/30">
@@ -53,7 +53,7 @@ export function PedidoCard({ pedido, onConfirm, onStateChange, mesaNombre, confi
                     ))}
                 </div>
 
-                <div className="mt-6 flex items-center justify-between border-t border-slate-100 pt-4 dark:border-slate-800">
+                <div className="mt-6 flex items-center justify-between border-t border-slate-100 pt-4 dark:border-neutral-800">
                     <div>
                         <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Total</p>
                         <p className="text-lg font-bold text-slate-900 dark:text-white">{formatCurrency(pedido.total)}</p>
@@ -64,7 +64,7 @@ export function PedidoCard({ pedido, onConfirm, onStateChange, mesaNombre, confi
                         {/* Manual Override for Admins/Waiters */}
                         {onStateChange && pedido.estado !== 'entregado' && (
                             <select
-                                className="text-xs bg-slate-100 border-none rounded-lg py-1 px-2 text-slate-600 cursor-pointer hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 focus:ring-0"
+                                className="text-xs bg-slate-100 border-none rounded-lg py-1 px-2 text-slate-600 cursor-pointer hover:bg-slate-200 dark:bg-neutral-800 dark:text-slate-400 focus:ring-0"
                                 value={""}
                                 onChange={(e) => {
                                     if (e.target.value) onStateChange(pedido.id, e.target.value);

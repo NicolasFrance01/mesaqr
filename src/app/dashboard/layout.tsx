@@ -16,7 +16,7 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     return (
-        <div className="flex min-h-screen bg-white dark:bg-slate-900 transition-colors duration-300">
+        <div className="flex h-screen overflow-hidden bg-white dark:bg-neutral-900 transition-colors duration-300">
             <Sidebar />
             <main className="flex-1 overflow-y-auto p-8 flex flex-col justify-between relative" style={{ zoom: 0.8 }}>
                 <div className="absolute top-4 right-8 z-50">
@@ -26,7 +26,7 @@ export default function DashboardLayout({
                     <NotificationsPanel />
                     {children}
                 </div>
-                <footer className="mt-12 w-full border-t border-slate-200 py-6 text-center text-xs text-slate-400 dark:border-slate-800">
+                <footer className="mt-12 w-full border-t border-slate-200 py-6 text-center text-xs text-slate-400 dark:border-neutral-800">
                     <p>© Nicolas France 2026 — Sistema de gestión de mesas y pagos</p>
                     <p className="mt-1 font-mono opacity-50">Versión 1.0.0</p>
                 </footer>

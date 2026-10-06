@@ -45,7 +45,7 @@ export default function DashboardOverview() {
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
-          <div key={stat.label} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+          <div key={stat.label} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
             <div className="flex items-center justify-between">
               <div className={`rounded-xl ${stat.bg} p-3`}>
                 <stat.icon className={`h-6 w-6 ${stat.color}`} />
@@ -60,7 +60,7 @@ export default function DashboardOverview() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-950">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-950">
           <h3 className="text-lg font-bold text-slate-900 dark:text-white">Actividad Reciente</h3>
           <div className="mt-4 space-y-4">
             {pedidos.slice(-5).reverse().map((pedido) => (
@@ -76,7 +76,7 @@ export default function DashboardOverview() {
           </div>
         </div>
 
-        <div className="rounded-2xl bg-white p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800 dark:border">
+        <div className="rounded-2xl bg-white p-6 shadow-sm dark:bg-neutral-900 dark:border-neutral-800 dark:border">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-orange-100 rounded-lg dark:bg-orange-900/30">
@@ -90,7 +90,7 @@ export default function DashboardOverview() {
           </div>
 
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl dark:bg-slate-800">
+            <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl dark:bg-neutral-800">
               <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Pendientes</span>
               <span className="font-bold text-slate-900 dark:text-white">{pedidos.filter(p => p.estado === 'pendiente').length}</span>
             </div>

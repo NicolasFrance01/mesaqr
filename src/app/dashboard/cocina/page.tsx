@@ -32,7 +32,7 @@ export default function CocinaPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-[500px]">
                 {/* Column 1: Pendientes */}
-                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 flex flex-col h-full dark:bg-slate-900/50 dark:border-slate-800">
+                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 flex flex-col h-full dark:bg-neutral-900/50 dark:border-neutral-800">
                     <div className="flex items-center gap-2 mb-4 text-slate-700 font-bold uppercase tracking-wider text-sm sticky top-0 dark:text-slate-300">
                         <AlertCircle className="h-5 w-5" />
                         <h2>Nuevos Pedidos ({pedidosPendientes.length})</h2>

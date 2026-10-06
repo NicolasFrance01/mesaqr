@@ -60,13 +60,13 @@ export default function MesasPage() {
                 </button>
             </div>
 
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-xl bg-white p-4 shadow-sm dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-xl bg-white p-4 shadow-sm dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800">
                 <div className="relative flex-1 max-w-md">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                     <input
                         type="text"
                         placeholder="Buscar por nombre o ubicación..."
-                        className="w-full rounded-lg border-none bg-slate-50 pl-10 pr-4 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-500/20 dark:bg-slate-900"
+                        className="w-full rounded-lg border-none bg-slate-50 pl-10 pr-4 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-500/20 dark:bg-neutral-900"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -79,24 +79,24 @@ export default function MesasPage() {
                             className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
                                 activeFilter === loc 
                                 ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-400' 
-                                : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
+                                : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-neutral-800'
                             }`}
                         >
                             {loc}
                         </button>
                     ))}
                 </div>
-                <div className="flex items-center gap-1 rounded-lg bg-slate-100 p-1 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 ml-auto">
+                <div className="flex items-center gap-1 rounded-lg bg-slate-100 p-1 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 ml-auto">
                     <button
                         onClick={() => setViewMode('grid')}
-                        className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${viewMode === 'grid' ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-800 dark:text-white' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                        className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${viewMode === 'grid' ? 'bg-white text-slate-900 shadow-sm dark:bg-neutral-800 dark:text-white' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                     >
                         <LayoutGrid className="h-4 w-4" />
                         Grilla
                     </button>
                     <button
                         onClick={() => setViewMode('map')}
-                        className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${viewMode === 'map' ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-800 dark:text-white' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                        className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${viewMode === 'map' ? 'bg-white text-slate-900 shadow-sm dark:bg-neutral-800 dark:text-white' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                     >
                         <MapIcon className="h-4 w-4" />
                         Mapa

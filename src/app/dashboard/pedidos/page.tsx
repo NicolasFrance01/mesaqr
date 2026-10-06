@@ -64,7 +64,7 @@ export default function PedidosPage() {
                         ))}
                     </div>
                 ) : (
-                    <div className="flex h-40 flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-800">
+                    <div className="flex h-40 flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 dark:border-neutral-800">
                         <Package className="h-10 w-10 text-slate-300 dark:text-slate-700" />
                         <p className="mt-2 text-slate-500">No hay pedidos pendientes.</p>
                     </div>
