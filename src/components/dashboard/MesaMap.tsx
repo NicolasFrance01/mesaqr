@@ -42,7 +42,8 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
     // Selection State
     const [selectedMesas, setSelectedMesas] = useState<string[]>([]);
     const [selectedDecorations, setSelectedDecorations] = useState<string[]>([]);
-    const [selectionBox, setSelectionBox] = useState<{ startX: number, startY: number, endX: number, endY: number } | null>(null);
+    const selectionBoxRef = useRef<HTMLDivElement>(null);
+    const selectionCoordsRef = useRef({ startX: 0, startY: 0, endX: 0, endY: 0 });
     
     // Group Drag State
     const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -78,50 +79,75 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
         if (e.target !== containerRef.current) return;
         
         const rect = containerRef.current.getBoundingClientRect();
-        const startX = e.clientX - rect.left;
-        const startY = e.clientY - rect.top;
+        // Fallback for CSS scale/zoom if applied to a parent (though standard zoom is handled automatically)
+        const scaleX = rect.width / containerRef.current.offsetWidth || 1;
+        const scaleY = rect.height / containerRef.current.offsetHeight || 1;
         
-        setSelectionBox({ startX, startY, endX: startX, endY: startY });
+        const startX = (e.clientX - rect.left) / scaleX;
+        const startY = (e.clientY - rect.top) / scaleY;
+        
+        selectionCoordsRef.current = { startX, startY, endX: startX, endY: startY };
+        
+        if (selectionBoxRef.current) {
+            selectionBoxRef.current.style.display = 'block';
+            selectionBoxRef.current.style.left = `${startX}px`;
+            selectionBoxRef.current.style.top = `${startY}px`;
+            selectionBoxRef.current.style.width = '0px';
+            selectionBoxRef.current.style.height = '0px';
+        }
+
         setSelectedMesas([]);
         setSelectedDecorations([]);
 
         const onPointerMove = (moveEvent: PointerEvent) => {
-            setSelectionBox(prev => {
-                if (!prev) return null;
-                return { ...prev, endX: moveEvent.clientX - rect.left, endY: moveEvent.clientY - rect.top };
-            });
+            const endX = (moveEvent.clientX - rect.left) / scaleX;
+            const endY = (moveEvent.clientY - rect.top) / scaleY;
+            selectionCoordsRef.current.endX = endX;
+            selectionCoordsRef.current.endY = endY;
+
+            if (selectionBoxRef.current) {
+                const minX = Math.min(startX, endX);
+                const minY = Math.min(startY, endY);
+                const width = Math.abs(endX - startX);
+                const height = Math.abs(endY - startY);
+
+                selectionBoxRef.current.style.left = `${minX}px`;
+                selectionBoxRef.current.style.top = `${minY}px`;
+                selectionBoxRef.current.style.width = `${width}px`;
+                selectionBoxRef.current.style.height = `${height}px`;
+            }
         };
 
-        const onPointerUp = (upEvent: PointerEvent) => {
+        const onPointerUp = () => {
             document.removeEventListener('pointermove', onPointerMove);
             document.removeEventListener('pointerup', onPointerUp);
             
-            setSelectionBox(prev => {
-                if (!prev) return null;
-                const minX = Math.min(prev.startX, prev.endX);
-                const maxX = Math.max(prev.startX, prev.endX);
-                const minY = Math.min(prev.startY, prev.endY);
-                const maxY = Math.max(prev.startY, prev.endY);
+            if (selectionBoxRef.current) {
+                selectionBoxRef.current.style.display = 'none';
+            }
+            
+            const { startX, startY, endX, endY } = selectionCoordsRef.current;
+            const minX = Math.min(startX, endX);
+            const maxX = Math.max(startX, endX);
+            const minY = Math.min(startY, endY);
+            const maxY = Math.max(startY, endY);
+            
+            if (maxX - minX > 5 || maxY - minY > 5) {
+                const newSelMesas = mesas.filter(m => {
+                    const cx = (m.x || 0) + 48; // ~ center of 96px width
+                    const cy = (m.y || 0) + 48;
+                    return cx >= minX && cx <= maxX && cy >= minY && cy <= maxY;
+                }).map(m => m.id);
                 
-                if (maxX - minX > 5 || maxY - minY > 5) {
-                    const newSelMesas = mesas.filter(m => {
-                        const cx = (m.x || 0) + 48; // ~ center of 96px width
-                        const cy = (m.y || 0) + 48;
-                        return cx >= minX && cx <= maxX && cy >= minY && cy <= maxY;
-                    }).map(m => m.id);
-                    
-                    const newSelDecs = decorations.filter(d => {
-                        const cx = d.x + (d.width / 2);
-                        const cy = d.y + (d.height / 2);
-                        return cx >= minX && cx <= maxX && cy >= minY && cy <= maxY;
-                    }).map(d => d.id);
+                const newSelDecs = decorations.filter(d => {
+                    const cx = d.x + (d.width / 2);
+                    const cy = d.y + (d.height / 2);
+                    return cx >= minX && cx <= maxX && cy >= minY && cy <= maxY;
+                }).map(d => d.id);
 
-                    setSelectedMesas(newSelMesas);
-                    setSelectedDecorations(newSelDecs);
-                }
-                
-                return null;
-            });
+                setSelectedMesas(newSelMesas);
+                setSelectedDecorations(newSelDecs);
+            }
         };
 
         document.addEventListener('pointermove', onPointerMove);
@@ -195,8 +221,12 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
 
     const handleResizePointerDown = (e: React.PointerEvent, decId: string) => {
         e.stopPropagation();
-        const startX = e.clientX;
-        const startY = e.clientY;
+        const rect = containerRef.current?.getBoundingClientRect();
+        const scaleX = rect ? rect.width / (containerRef.current?.offsetWidth || 1) : 1;
+        const scaleY = rect ? rect.height / (containerRef.current?.offsetHeight || 1) : 1;
+        
+        const startX = e.clientX / scaleX;
+        const startY = e.clientY / scaleY;
         
         setDecorations(prev => {
             const dec = prev.find(d => d.id === decId);
@@ -206,8 +236,8 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
             const startHeight = dec.height;
 
             const onPointerMove = (moveEvent: PointerEvent) => {
-                const dx = moveEvent.clientX - startX;
-                const dy = moveEvent.clientY - startY;
+                const dx = (moveEvent.clientX / scaleX) - startX;
+                const dy = (moveEvent.clientY / scaleY) - startY;
                 
                 const minW = 16;
                 const minH = 16;
@@ -387,17 +417,11 @@ export function MesaMap({ mesas, onEdit, location }: MesaMapProps) {
                     backgroundSize: '32px 32px'
                 }}
             >
-                {selectionBox && (
-                    <div 
-                        className="absolute border border-blue-500 bg-blue-500/20 z-50 pointer-events-none rounded-sm"
-                        style={{
-                            left: Math.min(selectionBox.startX, selectionBox.endX),
-                            top: Math.min(selectionBox.startY, selectionBox.endY),
-                            width: Math.abs(selectionBox.endX - selectionBox.startX),
-                            height: Math.abs(selectionBox.endY - selectionBox.startY)
-                        }}
-                    />
-                )}
+                <div 
+                    ref={selectionBoxRef}
+                    className="absolute border border-blue-500 bg-blue-500/20 z-50 pointer-events-none rounded-sm"
+                    style={{ display: 'none' }}
+                />
 
                 {/* Render Decorations (Behind tables) */}
                 {decorations.map(dec => renderDecoration(dec))}
